@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Element Duel - 2 Player Periodic Table Game</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --p1-color: #38bdf8;
+            --p2-color: #f43f5e;
+            --text-color: #f8fafc;
+            --accent-color: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            color: #e2e8f0;
+            margin-bottom: -0.5rem;
+        }
+
+        /* Scoreboard / Timers */
+        .scoreboard {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .player-box {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 0.8rem;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .player-box.active-p1 {
+            border-color: var(--p1-color);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .player-box.active-p2 {
+            border-color: var(--p2-color);
+            background: rgba(244, 63, 94, 0.1);
+        }
+
+        .player-name {
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.3rem;
+        }
+
+        .p1-text { color: var(--p1-color); }
+        .p2-text { color: var(--p2-color); }
+
+        .timer {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        /* Game Arena */
+        .arena {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .turn-indicator {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .symbol-card {
+            font-size: 4.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #334155, #1e293b);
+            width: 140px;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            box-shadow: inset 0 2px 5px rgba(255,255,255,0.1), 0 8px 16px rgba(0,0,0,0.3);
+            border: 2px solid rgba(255,255,255,0.1);
+            letter-spacing: 2px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            border-radius: 10px;
+            border: 2px solid #475569;
+            background: #0f172a;
+            color: white;
+            font-size: 1.1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-color);
+        }
+
+        .btn {
+            padding: 0.8rem 1.2rem;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn-submit {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-pass {
+            flex: 1;
+            background-color: #eab308;
+            color: #0f172a;
+        }
+
+        .btn-mic {
+            background-color: #475569;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.8rem 1rem;
+        }
+
+        .btn-mic.listening {
+            background-color: #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Modals & Screens */
+        .screen {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .btn-primary {
+            background-color: #38bdf8;
+            color: #0f172a;
+            font-size: 1.2rem;
+            padding: 1rem;
+            width: 100%;
+        }
+
+        .message {
+            font-size: 0.9rem;
+            min-height: 1.2rem;
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🧪 Element Duel</h1>
+
+        <!-- START SCREEN -->
+        <div id="start-screen" class="screen">
+            <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.4;">
+                Pass the phone back and forth! Name the chemical element from its symbol before your time runs out. Passing costs you 3 seconds.
+            </p>
+            <button class="btn btn-primary" onclick="startGame()">Start Game</button>
+        </div>
+
+        <!-- GAME SCREEN -->
+        <div id="game-screen" class="screen hidden">
+            <!-- Scoreboard / Timers -->
+            <div class="scoreboard">
+                <div id="box-p1" class="player-box active-p1">
+                    <div class="player-name p1-text">Player 1</div>
+                    <div id="timer-p1" class="timer p1-text">01:00</div>
+                </div>
+                <div id="box-p2" class="player-box">
+                    <div class="player-name p2-text">Player 2</div>
+                    <div id="timer-p2" class="timer p2-text">01:00</div>
+                </div>
+            </div>
+
+            <!-- Arena -->
+            <div class="arena">
+                <div id="turn-indicator" class="turn-indicator p1-text">Player 1's Turn</div>
+                <div id="element-symbol" class="symbol-card">H</div>
+                <div id="feedback-message" class="message">Type or speak the element name!</div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <form id="guess-form" onsubmit="handleGuess(event)" autocomplete="off">
+                    <div class="input-group">
+                        <input type="text" id="guess-input" placeholder="Enter element name..." autocomplete="off">
+                        <button type="submit" class="btn btn-submit">Guess</button>
+                    </div>
+                </form>
+                <div class="btn-row">
+                    <button id="mic-btn" class="btn btn-mic" onclick="toggleSpeechRecognition()" title="Voice Input">🎤</button>
+                    <button class="btn btn-pass" onclick="handlePass()">Pass (-3s)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME OVER SCREEN -->
+        <div id="gameover-screen" class="screen hidden">
+            <h2 id="winner-text" style="font-size: 2rem; margin-top: 1rem;">Player Wins!</h2>
+            <p style="color: #94a3b8;">Out of time!</p>
+            <button class="btn btn-primary" onclick="startGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Comprehensive Periodic Table Dataset (Symbol -> Name, case-insensitive lowercase)
+        const elements = [
+            { symbol: 'H', name: 'hydrogen' }, { symbol: 'He', name: 'helium' },
+            { symbol: 'Li', name: 'lithium' }, { symbol: 'Be', name: 'beryllium' },
+            { symbol: 'B', name: 'boron' }, { symbol: 'C', name: 'carbon' },
+            { symbol: 'N', name: 'nitrogen' }, { symbol: 'O', name: 'oxygen' },
+            { symbol: 'F', name: 'fluorine' }, { symbol: 'Ne', name: 'neon' },
+            { symbol: 'Na', name: 'sodium' }, { symbol: 'Mg', name: 'magnesium' },
+            { symbol: 'Al', name: 'aluminum' }, { symbol: 'Si', name: 'silicon' },
+            { symbol: 'P', name: 'phosphorus' }, { symbol: 'S', name: 'sulfur' },
+            { symbol: 'Cl', name: 'chlorine' }, { symbol: 'Ar', name: 'argon' },
+            { symbol: 'K', name: 'potassium' }, { symbol: 'Ca', name: 'calcium' },
+            { symbol: 'Sc', name: 'scandium' }, { symbol: 'Ti', name: 'titanium' },
+            { symbol: 'V', name: 'vanadium' }, { symbol: 'Cr', name: 'chromium' },
+            { symbol: 'Mn', name: 'manganese' }, { symbol: 'Fe', name: 'iron' },
+            { symbol: 'Co', name: 'cobalt' }, { symbol: 'Ni', name: 'nickel' },
+            { symbol: 'Cu', name: 'copper' }, { symbol: 'Zn', name: 'zinc' },
+            { symbol: 'Ga', name: 'gallium' }, { symbol: 'Ge', name: 'germanium' },
+            { symbol: 'As', name: 'arsenic' }, { symbol: 'Se', name: 'selenium' },
+            { symbol: 'Br', name: 'bromine' }, { symbol: 'Kr', name: 'krypton' },
+            { symbol: 'Rb', name: 'rubidium' }, { symbol: 'Sr', name: 'strontium' },
+            { symbol: 'Y', name: 'yttrium' }, { symbol: 'Zr', name: 'zirconium' },
+            { symbol: 'Nb', name: 'niobium' }, { symbol: 'Mo', name: 'molybdenum' },
+            { symbol: 'Tc', name: 'technetium' }, { symbol: 'Ru', name: 'ruthenium' },
+            { symbol: 'Rh', name: 'rhodium' }, { symbol: 'Pd', name: 'palladium' },
+            { symbol: 'Ag', name: 'silver' }, { symbol: 'Cd', name: 'cadmium' },
+            { symbol: 'In', name: 'indium' }, { symbol: 'Sn', name: 'tin' },
+            { symbol: 'Sb', name: 'antimony' }, { symbol: 'Te', name: 'tellurium' },
+            { symbol: 'I', name: 'iodine' }, { symbol: 'Xe', name: 'xenon' },
+            { symbol: 'Cs', name: 'cesium' }, { symbol: 'Ba', name: 'barium' },
+            { symbol: 'La', name: 'lanthanum' }, { symbol: 'Ce', name: 'cerium' },
+            { symbol: 'Pr', name: 'praseodymium' }, { symbol: 'Nd', name: 'neodymium' },
+            { symbol: 'Pm', name: 'promethium' }, { symbol: 'Sm', name: 'samarium' },
+            { symbol: 'Eu', name: 'europium' }, { symbol: 'Gd', name: 'gadolinium' },
+            { symbol: 'Tb', name: 'terbium' }, { symbol: 'Dy', name: 'dysprosium' },
+            { symbol: 'Ho', name: 'holmium' }, { symbol: 'Er', name: 'erbium' },
+            { symbol: 'Tm', name: 'thulium' }, { symbol: 'Yb', name: 'ytterbium' },
+            { symbol: 'Lu', name: 'lutetium' }, { symbol: 'Hf', name: 'hafnium' },
+            { symbol: 'Ta', name: 'tantalum' }, { symbol: 'W', name: 'tungsten' },
+            { symbol: 'Re', name: 'rhenium' }, { symbol: 'Os', name: 'osmium' },
+            { symbol: 'Ir', name: 'iridium' }, { symbol: 'Pt', name: 'platinum' },
+            { symbol: 'Au', name: 'gold' }, { symbol: 'Hg', name: 'mercury' },
+            { symbol: 'Tl', name: 'thallium' }, { symbol: 'Pb', name: 'lead' },
+            { symbol: 'Bi', name: 'bismuth' }, { symbol: 'Po', name: 'polonium' },
+            { symbol: 'At', name: 'astatine' }, { symbol: 'Rn', name: 'radon' },
+            { symbol: 'Fr', name: 'francium' }, { symbol: 'Ra', name: 'radium' },
+            { symbol: 'Ac', name: 'actinium' }, { symbol: 'Th', name: 'thorium' },
+            { symbol: 'Pa', name: 'protactinium' }, { symbol: 'U', name: 'uranium' },
+            { symbol: 'Np', name: 'neptunium' }, { symbol: 'Pu', name: 'plutonium' },
+            { symbol: 'Am', name: 'americium' }, { symbol: 'Cm', name: 'curium' },
+            { symbol: 'Bk', name: 'berkelium' }, { symbol: 'Cf', name: 'californium' },
+            { symbol: 'Es', name: 'einsteinium' }, { symbol: 'Fm', name: 'fermium' },
+            { symbol: 'Md', name: 'mendelevium' }, { symbol: 'No', name: 'nobelium' },
+            { symbol: 'Lr', name: 'lawrencium' }, { symbol: 'Rf', name: 'rutherfordium' },
+            { symbol: 'Db', name: 'dubnium' }, { symbol: 'Sg', name: 'seaborgium' },
+            { symbol: 'Bh', name: 'bohrium' }, { symbol: 'Hs', name: 'hassium' },
+            { symbol: 'Mt', name: 'meitnerium' }, { symbol: 'Ds', name: 'darmstadtium' },
+            { symbol: 'Rg', name: 'roentgenium' }, { symbol: 'Cn', name: 'copernicium' },
+            { symbol: 'Nh', name: 'nihonium' }, { symbol: 'Fl', name: 'flerovium' },
+            { symbol: 'Mc', name: 'moscovium' }, { symbol: 'Lv', name: 'livermorium' },
+            { symbol: 'Ts', name: 'tennessine' }, { symbol: 'Og', name: 'oganesson' }
+        ];
+
+        let gameState = {
+            activePlayer: 1, // 1 or 2
+            timers: { 1: 60, 2: 60 },
+            currentElement: null,
+            timerInterval: null,
+            isPlaying: false
+        };
+
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const gameoverScreen = document.getElementById('gameover-screen');
+        
+        const timerP1El = document.getElementById('timer-p1');
+        const timerP2El = document.getElementById('timer-p2');
+        const boxP1 = document.getElementById('box-p1');
+        const boxP2 = document.getElementById('box-p2');
+        const turnIndicator = document.getElementById('turn-indicator');
+        const elementSymbolEl = document.getElementById('element-symbol');
+        const guessInput = document.getElementById('guess-input');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const winnerText = document.getElementById('winner-text');
+
+        function startGame() {
+            startScreen.classList.add('hidden');
+            gameoverScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+
+            gameState.timers = { 1: 60, 2: 60 };
+            gameState.activePlayer = 1;
+            gameState.isPlaying = true;
+
+            updateTimersDisplay();
+            setNextElement();
+            updateTurnUI();
+
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            gameState.timerInterval = setInterval(gameLoop, 1000);
+            
+            guessInput.focus();
+        }
+
+        function gameLoop() {
+            if (!gameState.isPlaying) return;
+
+            gameState.timers[gameState.activePlayer]--;
+            updateTimersDisplay();
+
+            if (gameState.timers[gameState.activePlayer] <= 0) {
+                endGame(gameState.activePlayer === 1 ? 2 : 1);
+            }
+        }
+
+        function updateTimersDisplay() {
+            timerP1El.textContent = formatTime(gameState.timers[1]);
+            timerP2El.textContent = formatTime(gameState.timers[2]);
+        }
+
+        function formatTime(seconds) {
+            let mins = Math.floor(seconds / 60);
+            let secs = seconds % 60;
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function setNextElement() {
+            const randomIndex = Math.floor(Math.random() * elements.length);
+            gameState.currentElement = elements[randomIndex];
+            elementSymbolEl.textContent = gameState.currentElement.symbol;
+        }
+
+        function switchTurn() {
+            gameState.activePlayer = gameState.activePlayer === 1 ? 2 : 1;
+            updateTurnUI();
+            feedbackMessage.textContent = "";
+            guessInput.value = "";
+            guessInput.focus();
+        }
+
+        function updateTurnUI() {
+            if (gameState.activePlayer === 1) {
+                boxP1.classList.add('active-p1');
+                boxP2.classList.remove('active-p2');
+                turnIndicator.textContent = "Player 1's Turn";
+                turnIndicator.className = "turn-indicator p1-text";
+            } else {
+                boxP2.classList.add('active-p2');
+                boxP1.classList.remove('active-p1');
+                turnIndicator.textContent = "Player 2's Turn";
+                turnIndicator.className = "turn-indicator p2-text";
+            }
+        }
+
+        function handleGuess(event) {
+            event.preventDefault();
+            if (!gameState.isPlaying) return;
+
+            const userGuess = guessInput.value.trim().toLowerCase();
+            if (!userGuess) return;
+
+            if (userGuess === gameState.currentElement.name) {
+                // Correct! Switch turn and pass new element to opponent
+                feedbackMessage.style.color = "var(--accent-color)";
+                feedbackMessage.textContent = `Correct! It was ${gameState.currentElement.name}. Switching turn!`;
+                
+                setTimeout(() => {
+                    setNextElement();
+                    switchTurn();
+                    feedbackMessage.style.color = "#cbd5e1";
+                }, 400);
+            } else {
+                // Incorrect: stay on turn, keep guessing
+                feedbackMessage.style.color = "#f43f5e";
+                feedbackMessage.textContent = `Incorrect! Try again or pass.`;
+                guessInput.value = "";
+                guessInput.focus();
+            }
+        }
+
+        function handlePass() {
+            if (!gameState.isPlaying) return;
+
+            // Penalty of 3 seconds
+            gameState.timers[gameState.activePlayer] -= 3;
+            if (gameState.timers[gameState.activePlayer] < 0) {
+                gameState.timers[gameState.activePlayer] = 0;
+            }
+            updateTimersDisplay();
+
+            if (gameState.timers[gameState.activePlayer] === 0) {
+                endGame(gameState.activePlayer === 1 ? 2 : 1);
+                return;
+            }
+
+            feedbackMessage.style.color = "#eab308";
+            feedbackMessage.textContent = `Passed! (-3s)`;
+
+            setNextElement();
+            switchTurn();
+        }
+
+        function endGame(winner) {
+            gameState.isPlaying = false;
+            clearInterval(gameState.timerInterval);
+
+            gameScreen.classList.add('hidden');
+            gameoverScreen.classList.remove('hidden');
+
+            winnertText = document.getElementById('winner-text');
+            winnertText.textContent = `Player ${winner} Wins! 🎉`;
+            winnertText.className = winner === 1 ? "p1-text" : "p2-text";
+        }
+
+        // Optional: Voice Recognition Integration for Mobile friendliness
+        let recognition = null;
+        function toggleSpeechRecognition() {
+            const micBtn = document.getElementById('mic-btn');
+            
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert("Speech recognition is not supported in this browser. Please use Chrome or Safari and type your guesses.");
+                return;
+            }
+
+            if (!recognition) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    micBtn.classList.add('listening');
+                    feedbackMessage.textContent = "Listening...";
+                };
+
+                recognition.onresult = (event) => {
+                    const speechToText = event.results[0][0].transcript.trim().toLowerCase();
+                    guessInput.value = speechToText;
+                    micBtn.classList.remove('listening');
+                    // Automatically submit the voice guess
+                    handleGuess(new Event('submit'));
+                };
+
+                recognition.onerror = () => {
+                    micBtn.classList.remove('listening');
+                    feedbackMessage.textContent = "Voice recognition error. Try typing!";
+                };
+
+                recognition.onend = () => {
+                    micBtn.classList.remove('listening');
+                };
+            }
+
+            try {
+                recognition.start();
+            } catch (e) {
+                recognition.stop();
+            }
+        }
+    </script>
+</body>
+</html>
